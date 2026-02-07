@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Raindrop.io Importer",
+  "version": "1.0",
+  "author": "BXZ1",
+  "homepage_url": "https://github.com/BXZ1/raindrop-importer",
+  "description": "Imports from Raindrop.io to your Firefox Bookmarks Toolbar.",
+  "permissions": [
+    "bookmarks",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://api.raindrop.io/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icon.png"
+    },
+    "default_title": "Raindrop.io Importer"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  }
+}
