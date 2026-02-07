@@ -20,6 +20,17 @@
     },
     "default_title": "Raindrop.io Importer"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "raindrop-importer@bxz1.github.io",
+      "strict_min_version": "109.0"
+    }
+  },
+  "data_collection_permissions": {
+    "usage": false,
+    "technical": false,
+    "locales": false
+  },
   "background": {
     "scripts": [
       "background.js"
