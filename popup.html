@@ -60,12 +60,30 @@
             <!-- Dynamic Input Area -->
             <div class="input-area">
                 <div class="form-group" id="collectionInputGroup">
-                    <label for="configValueCollection">Collection Name</label>
-                    <input type="text" id="configValueCollection" placeholder="My Collection" value="Bookmarks">
+                    <label for="configValueCollection">Collection Name(s)</label>
+                    <input type="text" id="configValueCollection" placeholder="Bookmarks, Recipes, Work"
+                        value="Bookmarks">
+                    <small class="input-helper">Separate multiple with commas (e.g. A, B)</small>
                 </div>
                 <div class="form-group" id="tagInputGroup" style="display: none;">
-                    <label for="configValueTag">Tag Name (e.g. firefox)</label>
-                    <input type="text" id="configValueTag" placeholder="firefox" value="firefox">
+                    <label for="configValueTag">Tag Name(s)</label>
+                    <input type="text" id="configValueTag" placeholder="firefox, tech tips, news" value="firefox">
+                    <small class="input-helper">Multiple tags/spaces allowed (e.g. tag1, tag 2)</small>
+                </div>
+
+                <!-- Flatten Option -->
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="flattenImport">
+                        <span>Merge into single folder</span>
+                    </label>
+                    <button type="button" class="help-btn" id="flattenHelpBtn" title="Click for more info">?</button>
+                    <div class="tooltip" id="flattenTooltip">
+                        <strong>When checked:</strong><br>
+                        All bookmarks are imported directly into your target folder without folders/subfolders.<br><br>
+                        <strong>When unchecked:</strong><br>
+                        Preserves original folders/subfolders structure
+                    </div>
                 </div>
             </div>
 

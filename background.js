@@ -4,7 +4,7 @@ const COLLECTIONS_CHILDREN_URL = 'https://api.raindrop.io/rest/v1/collections/ch
 
 const TOOLBAR_ID = 'toolbar_____';
 const SYNC_ALARM_NAME = 'raindrop_sync';
-const PAGE_SIZE = 50; // Raindrop API page size
+const PAGE_SIZE = 50; // Raindrop API pagination
 const RATE_LIMIT_REQUESTS_PER_MINUTE = 120; // Raindrop API rate limit
 const RATE_LIMIT_DELAY_MS = Math.ceil((60 * 1000) / RATE_LIMIT_REQUESTS_PER_MINUTE); // ~500ms between requests
 const MAX_RETRIES = 3;
@@ -25,34 +25,34 @@ let lastRequestTime = 0;
 async function rateLimitedFetch(url, options) {
     const now = Date.now();
     const timeSinceLastRequest = now - lastRequestTime;
-    
+
     if (timeSinceLastRequest < RATE_LIMIT_DELAY_MS) {
         const delay = RATE_LIMIT_DELAY_MS - timeSinceLastRequest;
         await new Promise(resolve => setTimeout(resolve, delay));
     }
-    
+
     lastRequestTime = Date.now();
-    
+
     // Retry logic with exponential backoff
     let lastError;
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
             const response = await fetch(url, options);
-            
+
             // Handle rate limit (429) with retry
             if (response.status === 429) {
                 const retryAfter = response.headers.get('Retry-After');
-                const delay = retryAfter 
-                    ? parseInt(retryAfter) * 1000 
+                const delay = retryAfter
+                    ? parseInt(retryAfter) * 1000
                     : RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
-                
+
                 if (attempt < MAX_RETRIES - 1) {
                     console.warn(`Rate limit hit, retrying after ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     continue;
                 }
             }
-            
+
             return response;
         } catch (error) {
             lastError = error;
@@ -63,7 +63,7 @@ async function rateLimitedFetch(url, options) {
             }
         }
     }
-    
+
     throw lastError || new Error('Request failed after retries');
 }
 
@@ -153,7 +153,7 @@ async function getOrCreateCollectionFolder(raindropCollectionId, targetRootFolde
     // Normalize IDs to strings for consistent comparison
     const normalizedId = String(raindropCollectionId);
     const normalizedImportedId = importedRootCollectionId ? String(importedRootCollectionId) : null;
-    
+
     // System collections / Unsorted (check both string and number forms)
     const systemIds = ['-1', '-99', '0', '-1', '-99', '0'];
     if (!raindropCollectionId || systemIds.includes(normalizedId)) {
@@ -227,15 +227,21 @@ function getDescendantCollectionIds(rootId) {
 
 /**
  * Helper: Fetch bookmarks from a specific endpoint and import them
+ * @param {Set} sharedImportedIds - Shared Set for deduplication across multiple calls
+ * @param {boolean} flattenImport - When true, imports directly to targetRootFolderId without subfolder creation
  */
-async function fetchAndImportFromEndpoint(apiToken, url, searchParams, targetRootFolderId, importedRootCollectionId = null) {
+async function fetchAndImportFromEndpoint(apiToken, url, searchParams, targetRootFolderId, importedRootCollectionId = null, sharedImportedIds = null, flattenImport = false) {
     let page = 0;
     let importedCount = 0;
     let hasMore = true;
 
+    // Use shared Set if provided, otherwise create local one
+    const importedIds = sharedImportedIds || new Set();
+
     while (hasMore) {
         searchParams.set('page', page);
         searchParams.set('perpage', PAGE_SIZE);
+        searchParams.set('sort', '-sort'); // Uses Raindrop's internal manual ordering (stable)
 
         const fullUrl = `${url}?${searchParams.toString()}`;
         const response = await rateLimitedFetch(fullUrl, {
@@ -257,8 +263,21 @@ async function fetchAndImportFromEndpoint(apiToken, url, searchParams, targetRoo
         }
 
         for (const item of raindrops) {
-            const raindropCollectionId = item.collection?.$id;
-            const firefoxParentId = await getOrCreateCollectionFolder(raindropCollectionId, targetRootFolderId, importedRootCollectionId);
+            // Skip duplicates - handles both API boundary issues and multi-value deduplication
+            const itemId = String(item._id);
+            if (importedIds.has(itemId)) {
+                continue;
+            }
+            importedIds.add(itemId);
+
+            // Determine parent folder: flatten mode goes directly to root, otherwise preserve structure
+            let firefoxParentId;
+            if (flattenImport) {
+                firefoxParentId = targetRootFolderId;
+            } else {
+                const raindropCollectionId = item.collection?.$id;
+                firefoxParentId = await getOrCreateCollectionFolder(raindropCollectionId, targetRootFolderId, importedRootCollectionId);
+            }
 
             await browser.bookmarks.create({
                 parentId: firefoxParentId,
@@ -272,7 +291,7 @@ async function fetchAndImportFromEndpoint(apiToken, url, searchParams, targetRoo
         // Also check if count exists in response to determine if more pages exist
         if (raindrops.length < PAGE_SIZE) {
             hasMore = false;
-        } else if (data.count !== undefined && importedCount >= data.count) {
+        } else if (data.count !== undefined && importedIds.size >= data.count) {
             // If API provides total count, use it to determine if we're done
             hasMore = false;
         } else {
@@ -298,7 +317,7 @@ function findCollectionIdByName(name) {
 
 // Main function to fetch and import bookmarks
 async function importRaindropBookmarks(settings) {
-    const { apiToken, targetFolder, mode, configValue } = settings;
+    const { apiToken, targetFolder, mode, configValue, flattenImport = false } = settings;
 
     if (!apiToken || !targetFolder || !configValue) {
         throw new Error('Missing required settings (Token, Folder, or Tag/Collection Name).');
@@ -313,37 +332,92 @@ async function importRaindropBookmarks(settings) {
     // Reset Cache
     for (const key in firefoxFolderCache) { delete firefoxFolderCache[key]; }
 
+    // Parse comma-separated values
+    const values = configValue.split(',').map(v => v.trim()).filter(v => v.length > 0);
+
+    if (values.length === 0) {
+        throw new Error('No valid values provided.');
+    }
+
     let totalImported = 0;
+
+    // Shared Set for deduplication across all values
+    const sharedImportedIds = new Set();
 
     try {
         if (mode === 'tag') {
-            // Import by Tag: Single global fetch
+            // Import by Tag(s): Loop through each tag
             const url = RAINDROP_API_URL + '/0';
-            // Fix: Only add # prefix if tag doesn't already start with it
-            const tagValue = configValue.trim().startsWith('#') ? configValue.trim() : `#${configValue.trim()}`;
-            const searchParams = new URLSearchParams({ search: tagValue });
 
-            totalImported = await fetchAndImportFromEndpoint(apiToken, url, searchParams, targetRootFolderId);
+            for (const tag of values) {
+                // Add # prefix if tag doesn't already start with it, and wrap in quotes for spaces
+                const tagValue = tag.startsWith('#') ? tag : `#${tag}`;
+                // Wrap in double quotes to handle tags with spaces
+                const searchQuery = `"${tagValue}"`;
+                const searchParams = new URLSearchParams({ search: searchQuery });
 
-        } else if (mode === 'collection') {
-            // Import by Collection: Recursive fetch of target and all descendants
-            const rootCollectionId = findCollectionIdByName(configValue);
-
-            if (!rootCollectionId) {
-                throw new Error(`Collection "${configValue}" not found.`);
-            }
-
-            // Get target + all children
-            const collectionsToFetch = [rootCollectionId, ...getDescendantCollectionIds(rootCollectionId)];
-
-            for (const collectionId of collectionsToFetch) {
-                const url = RAINDROP_API_URL + `/${collectionId}`;
-                const searchParams = new URLSearchParams(); // No search filter, just get all in collection
-
-                // Pass rootCollectionId to flatten the structure
-                const count = await fetchAndImportFromEndpoint(apiToken, url, searchParams, targetRootFolderId, rootCollectionId);
+                const count = await fetchAndImportFromEndpoint(
+                    apiToken,
+                    url,
+                    searchParams,
+                    targetRootFolderId,
+                    null,  // no importedRootCollectionId for tags
+                    sharedImportedIds,
+                    flattenImport
+                );
                 totalImported += count;
             }
+
+        } else if (mode === 'collection') {
+            // Import by Collection(s): Loop through each collection
+            const notFoundCollections = [];
+
+            for (const collectionName of values) {
+                const rootCollectionId = findCollectionIdByName(collectionName);
+
+                if (!rootCollectionId) {
+                    notFoundCollections.push(collectionName);
+                    continue;
+                }
+
+                // If importing multiple collections, create a wrapper folder for each
+                let currentTargetId = targetRootFolderId;
+                if (values.length > 1) {
+                    const collectionData = collectionMap[rootCollectionId];
+                    const wrapperFolder = await browser.bookmarks.create({
+                        parentId: targetRootFolderId,
+                        title: collectionData.title
+                    });
+                    currentTargetId = wrapperFolder.id;
+                }
+
+                // Get target + all children
+                const collectionsToFetch = [rootCollectionId, ...getDescendantCollectionIds(rootCollectionId)];
+
+                for (const collectionId of collectionsToFetch) {
+                    const url = RAINDROP_API_URL + `/${collectionId}`;
+                    const searchParams = new URLSearchParams();
+
+                    // Pass rootCollectionId to preserve nested structure
+                    // Note: For collections, we ALWAYS preserve subfolder structure (flattenImport doesn't affect this)
+                    const count = await fetchAndImportFromEndpoint(
+                        apiToken,
+                        url,
+                        searchParams,
+                        currentTargetId,
+                        rootCollectionId,
+                        sharedImportedIds,
+                        false  // Never flatten collections - always preserve structure
+                    );
+                    totalImported += count;
+                }
+            }
+
+            // If some collections weren't found, report it
+            if (notFoundCollections.length > 0 && totalImported === 0) {
+                throw new Error(`Collection(s) not found: ${notFoundCollections.join(', ')}`);
+            }
+
         } else {
             throw new Error('Invalid import mode.');
         }
@@ -380,7 +454,8 @@ async function performSilentSync() {
             apiToken: stored.apiToken,
             targetFolder: stored.targetFolder,
             mode: stored.method || 'collection',
-            configValue: configValue
+            configValue: configValue,
+            flattenImport: stored.flattenImport || false
         };
 
         console.log('Starting Auto-Sync...');

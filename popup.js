@@ -5,12 +5,15 @@ const elements = {
     apiToken: document.getElementById('apiToken'),
     targetFolder: document.getElementById('targetFolder'),
     syncInterval: document.getElementById('syncInterval'),
-    // saveSettingsBtn removed
     methodCards: document.querySelectorAll('.method-card'),
     tagInputGroup: document.getElementById('tagInputGroup'),
     collectionInputGroup: document.getElementById('collectionInputGroup'),
     configValueTag: document.getElementById('configValueTag'),
     configValueCollection: document.getElementById('configValueCollection'),
+    checkboxGroup: document.querySelector('.checkbox-group'), // Container for flatten option
+    flattenImport: document.getElementById('flattenImport'),
+    flattenHelpBtn: document.getElementById('flattenHelpBtn'),
+    flattenTooltip: document.getElementById('flattenTooltip'),
     importBtn: document.getElementById('importBtn'),
     statusMsg: document.getElementById('statusMsg'),
     lastSyncMsg: document.getElementById('lastSyncMsg')
@@ -23,7 +26,8 @@ const STATE = {
     method: 'collection', // 'tag' or 'collection'
     tagValue: 'firefox',
     collectionValue: 'Bookmarks',
-    syncInterval: 1440 // 0 = off, value in minutes
+    syncInterval: 1440, // 0 = off, value in minutes
+    flattenImport: false // When true, imports all to single folder
 };
 
 // Load Settings
@@ -36,9 +40,9 @@ async function loadState() {
         elements.apiToken.value = STATE.apiToken || '';
         elements.targetFolder.value = STATE.targetFolder || 'Imported from Raindrop';
         elements.configValueTag.value = STATE.tagValue || 'firefox';
-        // Fix: Use default 'Bookmarks' if collectionValue is empty/undefined
         elements.configValueCollection.value = STATE.collectionValue || 'Bookmarks';
         elements.syncInterval.value = STATE.syncInterval || 0;
+        elements.flattenImport.checked = STATE.flattenImport || false;
 
         // Restore method selection
         selectMethod(STATE.method || 'collection');
@@ -134,9 +138,11 @@ function selectMethod(method) {
     if (method === 'tag') {
         elements.tagInputGroup.style.display = 'block';
         elements.collectionInputGroup.style.display = 'none';
+        elements.checkboxGroup.style.display = 'flex'; // Only show for tags
     } else {
         elements.tagInputGroup.style.display = 'none';
         elements.collectionInputGroup.style.display = 'block';
+        elements.checkboxGroup.style.display = 'none'; // Hide for collections
     }
 
     saveState(); // Persist selection immediately
@@ -149,6 +155,7 @@ async function saveState() {
     STATE.tagValue = elements.configValueTag.value.trim();
     STATE.collectionValue = elements.configValueCollection.value.trim();
     STATE.syncInterval = parseInt(elements.syncInterval.value, 10);
+    STATE.flattenImport = elements.flattenImport.checked;
 
     await browser.storage.local.set(STATE);
 }
@@ -210,6 +217,22 @@ elements.methodCards.forEach(card => {
     card.addEventListener('click', () => selectMethod(card.dataset.method));
 });
 
+// Flatten checkbox auto-save
+elements.flattenImport.addEventListener('change', () => saveState());
+
+// Tooltip toggle
+elements.flattenHelpBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    elements.flattenTooltip.classList.toggle('visible');
+});
+
+// Close tooltip when clicking outside
+document.addEventListener('click', (e) => {
+    if (!elements.flattenTooltip.contains(e.target) && e.target !== elements.flattenHelpBtn) {
+        elements.flattenTooltip.classList.remove('visible');
+    }
+});
+
 elements.importBtn.addEventListener('click', async () => {
     // 1. Validate
     if (!elements.apiToken.value.trim()) {
@@ -242,13 +265,14 @@ elements.importBtn.addEventListener('click', async () => {
                 apiToken: STATE.apiToken,
                 targetFolder: STATE.targetFolder,
                 mode: STATE.method, // 'tag' or 'collection'
-                configValue: configValue     // The tag name or collection name
+                configValue: configValue,     // The tag name(s) or collection name(s)
+                flattenImport: STATE.flattenImport // Whether to flatten into single folder
             }
         });
 
         // Fix: Validate response exists before accessing properties
         if (response && response.success) {
-            showStatus('success', `Done! Imported ${response.count} bookmarks to "${response.folder}".`);
+            showStatus('success', `Done! Imported ${response.count} bookmarks.`);
             updateLastSyncDisplay(Date.now());
         } else {
             const errorMsg = response?.error || 'Unknown error occurred';
