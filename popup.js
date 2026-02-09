@@ -16,7 +16,8 @@ const elements = {
     flattenTooltip: document.getElementById('flattenTooltip'),
     importBtn: document.getElementById('importBtn'),
     statusMsg: document.getElementById('statusMsg'),
-    lastSyncMsg: document.getElementById('lastSyncMsg')
+    lastSyncMsg: document.getElementById('lastSyncMsg'),
+    tokenStatus: document.getElementById('tokenStatus')
 };
 
 // Default State
@@ -98,28 +99,62 @@ function updateLastSyncDisplay(timestamp) {
     }
     const date = new Date(timestamp);
     const relativeTime = timeAgo(timestamp);
-    elements.lastSyncMsg.textContent = `Last Sync: ${date.toLocaleString()} (${relativeTime})`;
+    const dateString = date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric'
+    });
+    elements.lastSyncMsg.textContent = `Last Sync: ${dateString} (${relativeTime})`;
 }
 
-// Helper: Validate Token Visuals
-function validateToken(token) {
+// Helper: Validate Token (Async API Check)
+const validateToken = debounce(async (token) => {
+    const statusEl = elements.tokenStatus;
     const input = elements.apiToken;
-    // Simple UUID check or length check for Raindrop tokens (usually ~36 chars)
-    const isValid = token.length > 20;
 
-    if (token.length === 0) {
+    if (!token) {
+        statusEl.textContent = '';
         input.classList.remove('valid', 'invalid');
         return;
     }
 
-    if (isValid) {
-        input.classList.add('valid');
-        input.classList.remove('invalid');
-    } else {
+    if (token.length < 20) {
+        statusEl.textContent = '❌ Token too short';
+        statusEl.style.color = 'var(--error)';
         input.classList.add('invalid');
         input.classList.remove('valid');
+        return;
     }
-}
+
+    statusEl.textContent = '⏳ Verifying...';
+    statusEl.style.color = 'var(--text-muted)';
+
+    try {
+        const response = await fetch('https://api.raindrop.io/rest/v1/user', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const user = data.item || data.user || {}; // API can vary slightly depending on scope
+            const name = user.full_name || user.name || user.username || 'Raindrop User';
+            statusEl.textContent = `✅ Connected as ${name}`;
+            statusEl.style.color = 'var(--success)';
+            input.classList.add('valid');
+            input.classList.remove('invalid');
+        } else {
+            statusEl.textContent = '❌ Invalid Token';
+            statusEl.style.color = 'var(--error)';
+            input.classList.add('invalid');
+            input.classList.remove('valid');
+        }
+    } catch (e) {
+        statusEl.textContent = '⚠️ Connection error';
+        statusEl.style.color = 'var(--text-muted)';
+    }
+}, 500);
 
 // Method Selection Logic
 function selectMethod(method) {
@@ -182,15 +217,20 @@ function showStatus(type, text, autoHide = false) {
 
 // Event Listeners
 elements.settingsToggle.addEventListener('click', () => {
-    elements.settingsPanel.classList.toggle('active');
-    elements.settingsPanel.classList.remove('force-visible');
+    // If it's forced visible, the first toggle should hide it
+    if (elements.settingsPanel.classList.contains('force-visible')) {
+        elements.settingsPanel.classList.remove('force-visible');
+        elements.settingsPanel.classList.remove('active');
+    } else {
+        elements.settingsPanel.classList.toggle('active');
+    }
 });
 
 // Auto-Save Logic
 const handleInput = debounce(async () => {
     await saveState();
     // Optional: show a tiny 'saved' indicator if needed, but keeping it clean for now
-}, 500);
+}, 250);
 
 // Attach listeners to all inputs
 [elements.apiToken, elements.targetFolder, elements.configValueTag, elements.configValueCollection].forEach(input => {
@@ -254,7 +294,7 @@ elements.importBtn.addEventListener('click', async () => {
 
     // 3. UI Loading State
     elements.importBtn.disabled = true;
-    elements.importBtn.querySelector('span').textContent = 'Importing...';
+    elements.importBtn.querySelector('span').textContent = 'Syncing...';
     showStatus('loading', 'Fetching bookmarks from Raindrop...');
 
     // 4. Send to Background
@@ -282,7 +322,7 @@ elements.importBtn.addEventListener('click', async () => {
         showStatus('error', `Error: ${e.message || 'Failed to communicate with background script'}`);
     } finally {
         elements.importBtn.disabled = false;
-        elements.importBtn.querySelector('span').textContent = 'Start Import';
+        elements.importBtn.querySelector('span').textContent = 'Sync Now';
     }
 });
 

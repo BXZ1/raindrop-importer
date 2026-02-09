@@ -20,10 +20,11 @@ Raindrop.io Sync is a specialized Firefox extension that bridges the gap between
 
 Most bookmark managers keep your links tucked away in a separate app. This extension puts them exactly where you need them: **the native Firefox Bookmarks Toolbar.**
 
-*   **Native & Fast**: Access your links using the browser's built-in toolbar, just like native bookmarks.
-*   **Set and Forget**: Scheduled **Auto-Sync** keeps your toolbar fresh daily, every 3 days, or weekly.
+*   **Set and Forget**: Scheduled **Auto-Sync** keeps your toolbar fresh every few hours, daily, or weekly.
 *   **Offline Safety**: Won't touch your bookmarks if the API is down or you're offline.
-*   **Source Selection**: Import by specific Collection or #tag.
+*   **Source Selection**: Sync multiple **Collections** or **#tags** at once (separated by commas).
+*   **Preserves Order**: Automatically mirrors the sorting and structure of your Raindrop bookmarks.
+*   **Optional Flattening**: Choose to import everything into a single folder or preserve subfolders.
 *   **Privacy**: Open source, zero data collection, and local token storage.
 
 ## Installation ⚙️
@@ -35,7 +36,7 @@ Most bookmark managers keep your links tucked away in a separate app. This exten
     *   Give it any name (e.g., `Firefox Sync`) and save.
     *   Click on your new app, then click **"Create test token"**.
     *   Copy the token and paste it into the extension's **API Token** field.
-3.  **Pick your Source**: Select a specific **Collection** or **#tag** to import.
+3.  **Pick your Source**: Select the **By Collection** or **By Tag** method. You can enter multiple names separated by commas (e.g., `Work, News, Tech Tips`).
 4.  **Set the Target**: Choose which folder in your **Bookmarks Toolbar** should hold the synced links (Default: `Imported from Raindrop`).
 5.  **Schedule Sync**: Choose your frequency and let the background script do the work.
 

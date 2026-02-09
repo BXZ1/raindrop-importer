@@ -47,6 +47,8 @@ body {
     font-size: 14px;
     line-height: 1.5;
     transition: background-color 0.3s ease, color 0.3s ease;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .app-container {
@@ -189,11 +191,6 @@ select:focus {
 /* Validation States */
 input.valid {
     border-color: var(--success);
-    padding-right: 32px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%2310b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>');
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 16px;
 }
 
 input.invalid {
