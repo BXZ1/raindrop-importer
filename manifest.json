@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Raindrop.io Importer",
+  "name": "Raindrop.io Sync",
   "version": "1.0",
   "author": "BXZ1",
-  "homepage_url": "https://github.com/BXZ1/raindrop-importer",
-  "description": "Imports from Raindrop.io to your Firefox Bookmarks Toolbar.",
+  "homepage_url": "https://github.com/BXZ1/raindrop-sync-firefox",
+  "description": "Syncs from Raindrop.io to your Firefox Bookmarks Toolbar.",
   "permissions": [
     "bookmarks",
     "storage",
@@ -18,7 +18,7 @@
     "default_icon": {
       "48": "icon.png"
     },
-    "default_title": "Raindrop.io Importer"
+    "default_title": "Raindrop.io Sync"
   },
   "browser_specific_settings": {
     "gecko": {
