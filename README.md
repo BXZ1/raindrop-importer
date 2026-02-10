@@ -8,8 +8,6 @@
 **Bring your Raindrop.io bookmarks/collections directly into your native Firefox Bookmarks Toolbar.**  
 Raindrop.io Sync is a specialized Firefox extension that bridges the gap between your cloud bookmarks and your native browser experience.
 
-## Screenshots
-
 <p align="center">
   <img src="screenshots/1.png" width="29%">
   <img src="screenshots/2.png" width="29%">
