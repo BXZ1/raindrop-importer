@@ -1,15 +1,14 @@
 # Raindrop.io Sync for Firefox
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Firefox Add-on](https://img.shields.io/amo/v/raindrop-sync-firefox?label=Firefox%20Add-on&logo=firefox&style=flat-square)](https://addons.mozilla.org/en-US/firefox/addon/raindrop-sync-firefox/)
-[![Mozilla Add-on](https://img.shields.io/amo/users/raindrop-sync-firefox?style=flat-square&logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/raindrop-sync-firefox/)
-[![Mozilla Add-on Rating](https://img.shields.io/amo/rating/raindrop-sync-firefox?style=flat-square&logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/raindrop-sync-firefox/)
-[![Made for Firefox](https://img.shields.io/badge/Made%20for-Firefox-orange?logo=firefox&style=flat-square)](https://addons.mozilla.org/en-US/firefox/addon/raindrop-sync-firefox/)
+[![Firefox Add-on](https://img.shields.io/amo/v/raindrop-sync-firefox?label=version&logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/raindrop-sync-firefox/)
+[![Mozilla Add-on Users](https://img.shields.io/amo/users/raindrop-sync-firefox?logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/raindrop-sync-firefox/)
+[![Download on Firefox](https://img.shields.io/badge/Download-on%20Firefox-orange?logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/raindrop-sync-firefox/)
 
 **Bring your Raindrop.io bookmarks/collections directly into your native Firefox Bookmarks Toolbar.**  
 Raindrop.io Sync is a specialized Firefox extension that bridges the gap between your cloud bookmarks and your native browser experience.
 
-## 🖼️ Screenshots
+## Screenshots
 
 <p align="center">
   <img src="screenshots/1.png" width="29%">
