@@ -16,77 +16,114 @@
                 <span>Raindrop.io Sync</span>
                 <a id="versionTag" class="version-tag" target="_blank" title="View Changelog"></a>
             </div>
-            <button id="settingsToggle" class="settings-btn" title="Settings">
-                ⚙️
+            <button id="settingsToggle" class="settings-link" title="Open/Close Settings">
+                <span class="settings-icon">⚙️</span>
+                <span>Settings</span>
             </button>
         </header>
 
         <main>
             <!-- Settings Panel -->
-            <div id="settingsPanel" class="settings-panel">
-                <div class="form-group">
-                    <label for="apiToken">API Token</label>
-                    <input type="password" id="apiToken" placeholder="Paste your Test Token here">
-                    <small id="tokenStatus" class="helper-text"></small>
-                </div>
-                <div class="form-group">
-                    <label for="targetFolder">Target Firefox Folder</label>
-                    <input type="text" id="targetFolder" placeholder="Imported from Raindrop"
-                        value="Imported from Raindrop">
-                    <small class="helper-text">⚠️ Content will be overwritten.</small>
-                </div>
-                <div class="form-group">
-                    <label for="syncInterval">Auto-Sync Frequency</label>
-                    <select id="syncInterval" class="sync-select">
-                        <option value="0">🚫 Off (Manual)</option>
-                        <option value="120">⏰ 2 Hours</option>
-                        <option value="360">⏰ 6 Hours</option>
-                        <option value="720">⏰ 12 Hours</option>
-                        <option value="1440">📅 Daily</option>
-                        <option value="4320">📅 Every 3 Days</option>
-                        <option value="10080">📆 Weekly</option>
-                    </select>
+            <div id="settingsPanel" class="settings-outer section-outer" data-label="Settings">
+                <div class="section-inner">
+                    <div class="form-group">
+                        <div class="label-with-help">
+                            <label for="apiToken">Test Token</label>
+                            <span class="help-btn-text" id="tokenHelpBtn" title="Token setup instructions">( How to
+                                get a token? )</span>
+                            <div class="tooltip" id="tokenTooltip">
+                                <strong>1.</strong> Go to Raindrop.io <a
+                                    href="https://app.raindrop.io/settings/integrations" target="_blank">Settings >
+                                    Integrations</a><br>
+                                <strong>2.</strong> Scroll to <em>"For Developers"</em> and click on <em>Create a new
+                                    app</em><br>
+                                <strong>3.</strong> Give it a name and save.<br>
+                                <strong>4.</strong> Click your app > <em>"Create test token"</em>.<br>
+                                <strong>5.</strong> Copy and paste it here
+                            </div>
+                        </div>
+                        <input type="password" id="apiToken" placeholder="e.g. 788bb7cd-02a4-436e-a1ec-e4a799973de9">
+                        <small id="tokenStatus" class="helper-text"></small>
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-help">
+                            <label for="targetFolder">Toolbar Folder Name</label>
+                            <button type="button" class="help-btn" id="folderHelpBtn"
+                                title="About target folder">?</button>
+                            <div class="tooltip" id="folderTooltip">
+                                The folder in your <strong>Bookmarks Toolbar</strong> where synced bookmarks will be
+                                placed.
+                            </div>
+                        </div>
+                        <input type="text" id="targetFolder" placeholder="" value="Imported from Raindrop">
+                        <small class="helper-text">⚠️ Content in this folder will be overwritten.</small>
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-help">
+                            <label for="syncInterval">Auto Sync</label>
+                        </div>
+                        <select id="syncInterval" class="sync-select">
+                            <option value="0">🚫 Off (Manual)</option>
+                            <option value="120">⏰ 2 Hours</option>
+                            <option value="360">⏰ 6 Hours</option>
+                            <option value="720" selected>⏰ 12 Hours</option>
+                            <option value="1440">📅 Daily</option>
+                            <option value="4320">📅 Every 3 Days</option>
+                            <option value="10080">📆 Weekly</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <!-- Import Method Selection -->
-            <label>Import Method</label>
-            <div class="method-selector">
-                <div class="method-card selected" data-method="collection">
-                    <span class="method-icon">📁</span>
-                    <span class="method-name">By Collection</span>
-                </div>
-                <div class="method-card" data-method="tag">
-                    <span class="method-icon">🏷️</span>
-                    <span class="method-name">By Tag</span>
-                </div>
-            </div>
+            <!-- Sync Configuration Section -->
+            <div class="section-outer" data-label="Sync Method">
+                <div class="section-inner">
+                    <div class="method-selector">
+                        <div class="method-card selected" data-method="collection"
+                            title="Sync all bookmarks inside specific folders">
+                            <span class="method-icon">📁</span>
+                            <span class="method-name">By Collection</span>
+                        </div>
+                        <div class="method-card" data-method="tag" title="Sync all bookmarks that have specific tags">
+                            <span class="method-icon">🏷️</span>
+                            <span class="method-name">By Tag</span>
+                        </div>
+                    </div>
 
-            <!-- Dynamic Input Area -->
-            <div class="input-area">
-                <div class="form-group" id="collectionInputGroup">
-                    <label for="configValueCollection">Collection Name(s)</label>
-                    <input type="text" id="configValueCollection" placeholder="Bookmarks, Tech Tips, Work"
-                        value="Bookmarks">
-                    <small class="input-helper">Multiple collections allowed (e.g. Bookmarks, Tech Tips)</small>
-                </div>
-                <div class="form-group" id="tagInputGroup" style="display: none;">
-                    <label for="configValueTag">Tag Name(s)</label>
-                    <input type="text" id="configValueTag" placeholder="firefox, tech tips, news" value="firefox">
-                    <small class="input-helper">Multiple tags allowed (e.g. firefox, tech tips)</small>
-                </div>
+                    <!-- Dynamic Input Area -->
+                    <div class="input-area">
+                        <div class="form-group" id="collectionInputGroup">
+                            <div class="input-header">
+                                <span class="input-header-label">📁 Select Collections</span>
+                                <div class="input-header-divider"></div>
+                            </div>
+                            <input type="text" id="configValueCollection" placeholder="Bookmarks, Tech Tips, Work"
+                                value="Bookmarks">
+                            <small class="input-helper">Multiple names allowed (e.g. Bookmarks, Tech Tips)</small>
+                        </div>
+                        <div class="form-group" id="tagInputGroup" style="display: none;">
+                            <div class="input-header">
+                                <span class="input-header-label">🏷️ Select Tags</span>
+                                <div class="input-header-divider"></div>
+                            </div>
+                            <input type="text" id="configValueTag" placeholder="firefox, tech tips, news"
+                                value="firefox">
+                            <small class="input-helper">Multiple names allowed (e.g. firefox, tech tips)</small>
+                        </div>
 
-                <!-- Flatten Option -->
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="flattenImport">
-                        <span>Merge into single folder</span>
-                    </label>
-                    <button type="button" class="help-btn" id="flattenHelpBtn" title="Click for more info">?</button>
-                    <div class="tooltip" id="flattenTooltip">
-                        <strong>Checked:</strong> All bookmarks are imported directly into your target folder
-                        without folders/subfolders.<br><br>
-                        <strong>Unchecked:</strong> Preserves original folders/subfolders structure
+                        <!-- Flatten Option -->
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="flattenImport">
+                                <span>Flatten Structure</span>
+                            </label>
+                            <button type="button" class="help-btn" id="flattenHelpBtn" title="More info">?</button>
+                            <div class="tooltip" id="flattenTooltip">
+                                <strong>Checked:</strong> All bookmarks are imported directly into your toolbar folder
+                                without subfolders.<br><br>
+                                <strong>Unchecked:</strong> Preserves original Raindrop folder structure.
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

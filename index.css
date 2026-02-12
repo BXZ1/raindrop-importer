@@ -103,19 +103,29 @@ header {
     color: var(--primary-hover);
 }
 
-.settings-btn {
+.settings-link {
     background: transparent;
     border: none;
     color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border-radius: 6px;
     transition: var(--transition);
 }
 
-.settings-btn:hover {
+.settings-link:hover,
+.settings-link.active {
     background: var(--bg-app);
-    color: var(--text-main);
+    color: var(--primary);
+}
+
+.settings-icon {
+    font-size: 14px;
 }
 
 /* Main Content */
@@ -124,15 +134,50 @@ main {
     flex: 1;
 }
 
-.settings-panel {
-    background: var(--bg-card);
+.section-outer {
+    margin-bottom: 24px;
+    position: relative;
+    padding-top: 10px;
+}
+
+.section-inner {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 20px;
+    padding: 20px 16px 16px 16px;
+    background: var(--bg-card);
     box-shadow: var(--shadow-sm);
+}
+
+/* Floating Label on border */
+.section-outer::before {
+    content: attr(data-label);
+    position: absolute;
+    top: 0;
+    left: 20px;
+    background: var(--bg-app);
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 1;
+}
+
+.settings-outer {
     display: none;
     animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-outer.active,
+.settings-outer.force-visible {
+    display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+    .section-inner {
+        background: rgba(255, 255, 255, 0.02);
+    }
 }
 
 @keyframes slideDown {
@@ -166,12 +211,49 @@ main {
 
 label {
     display: block;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11.5px;
+    font-weight: 700;
     margin-bottom: 6px;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.05em;
+}
+
+.input-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.input-header-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.input-header-divider {
+    height: 1px;
+    background: linear-gradient(to right, var(--primary-light), transparent);
+    flex: 1;
+    opacity: 0.3;
+}
+
+.label-with-help {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    position: relative;
+}
+
+.label-with-help label {
+    margin-bottom: 0;
 }
 
 input[type="text"],
@@ -219,7 +301,7 @@ input.invalid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .method-card {
@@ -261,7 +343,7 @@ input.invalid {
 }
 
 .input-area {
-    margin-bottom: 24px;
+    margin-bottom: 0;
 }
 
 /* Checkbox Group */
@@ -307,6 +389,21 @@ input.invalid {
     transition: var(--transition);
     flex-shrink: 0;
 }
+
+.help-btn-text {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    margin-left: 4px;
+    transition: var(--transition);
+}
+
+.help-btn-text:hover {
+    color: var(--primary);
+}
+
 
 .help-btn:hover {
     background: var(--primary);

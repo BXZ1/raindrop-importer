@@ -1,7 +1,7 @@
 // DOM Elements
 const elements = {
     settingsToggle: document.getElementById('settingsToggle'),
-    settingsPanel: document.getElementById('settingsPanel'),
+    settingsPanel: document.querySelector('.settings-outer'),
     apiToken: document.getElementById('apiToken'),
     targetFolder: document.getElementById('targetFolder'),
     syncInterval: document.getElementById('syncInterval'),
@@ -14,6 +14,10 @@ const elements = {
     flattenImport: document.getElementById('flattenImport'),
     flattenHelpBtn: document.getElementById('flattenHelpBtn'),
     flattenTooltip: document.getElementById('flattenTooltip'),
+    tokenHelpBtn: document.getElementById('tokenHelpBtn'),
+    tokenTooltip: document.getElementById('tokenTooltip'),
+    folderHelpBtn: document.getElementById('folderHelpBtn'),
+    folderTooltip: document.getElementById('folderTooltip'),
     importBtn: document.getElementById('importBtn'),
     statusMsg: document.getElementById('statusMsg'),
     lastSyncMsg: document.getElementById('lastSyncMsg'),
@@ -29,7 +33,7 @@ const STATE = {
     method: 'collection', // 'tag' or 'collection'
     tagValue: 'firefox',
     collectionValue: 'Bookmarks',
-    syncInterval: 1440, // 0 = off, value in minutes
+    syncInterval: 720, // 0 = off, value in minutes (Default: 12 Hours)
     flattenImport: false // When true, imports all to single folder
 };
 
@@ -53,6 +57,16 @@ async function loadState() {
         // Smart Settings Logic
         if (!STATE.apiToken) {
             elements.settingsPanel.classList.add('force-visible');
+            elements.settingsToggle.classList.add('active'); // Sync button state
+            elements.apiToken.classList.add('invalid'); // Highlight if empty
+
+            // Show status message on first launch if empty
+            elements.tokenStatus.textContent = '❌ Test Token is required';
+            elements.tokenStatus.style.color = 'var(--error)';
+
+            if (!elements.targetFolder.value.trim()) {
+                elements.targetFolder.classList.add('invalid');
+            }
         } else {
             validateToken(STATE.apiToken);
         }
@@ -157,13 +171,15 @@ const validateToken = debounce(async (token) => {
     const input = elements.apiToken;
 
     if (!token) {
-        statusEl.textContent = '';
-        input.classList.remove('valid', 'invalid');
+        statusEl.textContent = '❌ Test Token is required';
+        statusEl.style.color = 'var(--error)';
+        input.classList.add('invalid');
+        input.classList.remove('valid');
         return;
     }
 
     if (token.length < 20) {
-        statusEl.textContent = '❌ Token too short';
+        statusEl.textContent = '❌ Invalid format (too short)';
         statusEl.style.color = 'var(--error)';
         input.classList.add('invalid');
         input.classList.remove('valid');
@@ -263,8 +279,10 @@ elements.settingsToggle.addEventListener('click', () => {
     if (elements.settingsPanel.classList.contains('force-visible')) {
         elements.settingsPanel.classList.remove('force-visible');
         elements.settingsPanel.classList.remove('active');
+        elements.settingsToggle.classList.remove('active');
     } else {
-        elements.settingsPanel.classList.toggle('active');
+        const isActive = elements.settingsPanel.classList.toggle('active');
+        elements.settingsToggle.classList.toggle('active', isActive);
     }
 });
 
@@ -282,7 +300,20 @@ const handleInput = debounce(async () => {
         if (e.target === elements.apiToken) {
             validateToken(e.target.value.trim());
         }
+        // Highlight folder if empty
+        if (e.target === elements.targetFolder) {
+            e.target.classList.toggle('invalid', !e.target.value.trim());
+        }
     });
+});
+
+// Auto-fill folder if left empty
+elements.targetFolder.addEventListener('blur', () => {
+    if (!elements.targetFolder.value.trim()) {
+        elements.targetFolder.value = 'Imported from Raindrop';
+        elements.targetFolder.classList.remove('invalid');
+        saveState();
+    }
 });
 
 // Sync Interval Listener
@@ -302,16 +333,49 @@ elements.methodCards.forEach(card => {
 // Flatten checkbox auto-save
 elements.flattenImport.addEventListener('change', () => saveState());
 
-// Tooltip toggle
-elements.flattenHelpBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    elements.flattenTooltip.classList.toggle('visible');
+// Helper: Close all tooltips
+function closeAllTooltips() {
+    [
+        elements.flattenTooltip,
+        elements.tokenTooltip,
+        elements.folderTooltip
+    ].forEach(el => {
+        if (el) el.classList.remove('visible');
+    });
+}
+
+// Tooltip toggle logic
+[
+    { btn: elements.flattenHelpBtn, tip: elements.flattenTooltip },
+    { btn: elements.tokenHelpBtn, tip: elements.tokenTooltip },
+    { btn: elements.folderHelpBtn, tip: elements.folderTooltip }
+].forEach(item => {
+    if (item.btn && item.tip) {
+        item.btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isVisible = item.tip.classList.contains('visible');
+            closeAllTooltips();
+            if (!isVisible) item.tip.classList.add('visible');
+        });
+    }
 });
 
-// Close tooltip when clicking outside
+// Close tooltips when clicking outside
 document.addEventListener('click', (e) => {
-    if (!elements.flattenTooltip.contains(e.target) && e.target !== elements.flattenHelpBtn) {
-        elements.flattenTooltip.classList.remove('visible');
+    const isHelpBtn = [
+        elements.flattenHelpBtn,
+        elements.tokenHelpBtn,
+        elements.folderHelpBtn
+    ].some(btn => btn && btn.contains(e.target));
+
+    const isTooltip = [
+        elements.flattenTooltip,
+        elements.tokenTooltip,
+        elements.folderTooltip
+    ].some(tip => tip && tip.contains(e.target));
+
+    if (!isHelpBtn && !isTooltip) {
+        closeAllTooltips();
     }
 });
 
@@ -320,8 +384,20 @@ elements.importBtn.addEventListener('click', async () => {
     if (!elements.apiToken.value.trim()) {
         elements.settingsPanel.classList.add('force-visible');
         elements.apiToken.focus();
-        showStatus('error', 'Please enter your Raindrop API Token.');
+        showStatus('error', 'Please enter your Raindrop Test Token (Required).');
         return;
+    }
+
+    if (elements.apiToken.classList.contains('invalid')) {
+        elements.settingsPanel.classList.add('force-visible');
+        elements.apiToken.focus();
+        showStatus('error', 'Please provide a valid Test Token first.');
+        return;
+    }
+
+    // 1.5 Ensure folder is not empty
+    if (!elements.targetFolder.value.trim()) {
+        elements.targetFolder.value = 'Imported from Raindrop';
     }
 
     // 2. Prepare Data
